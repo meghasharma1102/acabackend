@@ -2,8 +2,7 @@ import os
 import socket
 from datetime import datetime, timezone
 
-import pymysql
-from pymysql.cursors import DictCursor
+import mysql.connector
 from flask import Flask, jsonify, request
 
 app = Flask(__name__)
@@ -15,19 +14,18 @@ DB_CONFIG = {
     "user": os.getenv("DB_USER", "ms"),
     "password": os.getenv("DB_PASSWORD", ""),
     "database": os.getenv("DB_NAME", "q1-order-db"),
-    "ssl": {} if os.getenv("DB_SSL_MODE", "require") == "require" else None,
-    "cursorclass": DictCursor,
+    "ssl_disabled": os.getenv("DB_SSL_MODE", "require") != "require",
 }
 
 
 def get_connection():
     config = {key: value for key, value in DB_CONFIG.items() if value is not None}
-    return pymysql.connect(**config)
+    return mysql.connector.connect(**config)
 
 
 def init_db():
     with get_connection() as connection:
-        with connection.cursor() as cursor:
+        with connection.cursor(dictionary=True) as cursor:
             cursor.execute(
                 """
                 CREATE TABLE IF NOT EXISTS orders (
@@ -73,7 +71,7 @@ def health():
     try:
         ensure_db()
         with get_connection() as connection:
-            with connection.cursor() as cursor:
+            with connection.cursor(dictionary=True) as cursor:
                 cursor.execute("SELECT 1 AS ok")
                 cursor.fetchone()
         database = "connected"
@@ -99,7 +97,7 @@ def health():
 def list_orders():
     ensure_db()
     with get_connection() as connection:
-        with connection.cursor() as cursor:
+        with connection.cursor(dictionary=True) as cursor:
             cursor.execute(
                 """
                 SELECT id, customer, product, status
@@ -119,7 +117,7 @@ def create_order():
         return jsonify(error="customer and product are required"), 400
 
     with get_connection() as connection:
-        with connection.cursor() as cursor:
+        with connection.cursor(dictionary=True) as cursor:
             cursor.execute(
                 """
                 INSERT INTO orders (customer, product, status)
