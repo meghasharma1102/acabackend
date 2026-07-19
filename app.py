@@ -7,6 +7,7 @@ from pymysql.cursors import DictCursor
 from flask import Flask, jsonify, request
 
 app = Flask(__name__)
+DB_INITIALIZED = False
 
 DB_CONFIG = {
     "host": os.getenv("DB_HOST", "q1-sql-server.mysql.database.azure.com"),
@@ -50,7 +51,11 @@ def init_db():
         connection.commit()
 
 
-init_db()
+def ensure_db():
+    global DB_INITIALIZED
+    if not DB_INITIALIZED:
+        init_db()
+        DB_INITIALIZED = True
 
 
 @app.get("/")
@@ -66,6 +71,7 @@ def home():
 @app.get("/health")
 def health():
     try:
+        ensure_db()
         with get_connection() as connection:
             with connection.cursor() as cursor:
                 cursor.execute("SELECT 1 AS ok")
@@ -91,6 +97,7 @@ def health():
 
 @app.get("/api/orders")
 def list_orders():
+    ensure_db()
     with get_connection() as connection:
         with connection.cursor() as cursor:
             cursor.execute(
@@ -106,6 +113,7 @@ def list_orders():
 
 @app.post("/api/orders")
 def create_order():
+    ensure_db()
     payload = request.get_json(silent=True) or {}
     if not payload.get("customer") or not payload.get("product"):
         return jsonify(error="customer and product are required"), 400
