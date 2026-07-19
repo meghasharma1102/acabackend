@@ -1,9 +1,7 @@
 name: Build and push image to ACR
 
 on:
-  # Manual run from GitHub Actions tab.
   workflow_dispatch:
-  # Push trigger is commented because this practical should run manually only.
   # push:
   #   branches: [main]
 
