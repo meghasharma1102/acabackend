@@ -1,9 +1,11 @@
 name: Build and push image to ACR
 
 on:
+  # Manual run from GitHub Actions tab.
   workflow_dispatch:
-  push:
-    branches: [main]
+  # Push trigger is commented because this practical should run manually only.
+  # push:
+  #   branches: [main]
 
 permissions:
   id-token: write
@@ -29,11 +31,12 @@ jobs:
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - name: Build and push image to ACR
-        uses: azure/container-apps-deploy-action@v1
+        uses: azure/cli@v2
         with:
-          appSourcePath: ${{ github.workspace }}
-          acrName: ${{ env.ACR_NAME }}
-          resourceGroup: ${{ env.RESOURCE_GROUP }}
-          imageToBuild: ${{ env.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:v${{ github.run_number }}
-          #imageToBuild: ${{ env.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          inlineScript: |
+            az acr build \
+              --registry ${{ env.ACR_NAME }} \
+              --resource-group ${{ env.RESOURCE_GROUP }} \
+              --image ${{ env.IMAGE_NAME }}:v${{ github.run_number }} \
+              .
    
